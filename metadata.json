@@ -1,0 +1,8 @@
+{
+  "name": "Creator Toolkit",
+  "description": "Mobile-first client-side video-to-audio extractor and subtitle converter for content creators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

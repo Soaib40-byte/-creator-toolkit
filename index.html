@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Creator Toolkit - Video Editor Edition</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            },
+            surface: {
+              DEFAULT: '#09090b',
+              card: '#121217',
+              border: '#27272a',
+              input: '#18181b',
+              muted: '#71717a'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- lamejs for 100% Client-Side MP3 Encoding -->
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+
+    /* Glassmorphism Card Style */
+    .glass-card {
+      background: rgba(18, 18, 23, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(39, 39, 42, 0.8);
+    }
+
+    /* Pulse Glow Animation */
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.03); }
+    }
+    .glow-bg {
+      animation: glow-pulse 6s ease-in-out infinite;
+    }
+
+    /* Active Word Highlight in Karaoke Player */
+    .active-word-highlight {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #ffffff;
+      transform: scale(1.08);
+      box-shadow: 0 0 15px rgba(124, 58, 237, 0.6);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body class="bg-[#09090b] text-zinc-100 min-h-screen flex flex-col font-sans antialiased selection:bg-violet-600 selection:text-white">
+
+  <!-- Background Decorative Glowing Orbs -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[650px] h-[360px] bg-gradient-to-r from-violet-600/15 via-indigo-600/15 to-purple-600/10 blur-[120px] rounded-full glow-bg"></div>
+    <div class="absolute bottom-10 right-0 w-[400px] h-[400px] bg-violet-900/10 blur-[140px] rounded-full"></div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-[#09090b]/85 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-purple-500 p-[1px] shadow-lg shadow-violet-600/20 flex items-center justify-center">
+          <div class="w-full h-full bg-[#09090b] rounded-[11px] flex items-center justify-center">
+            <i data-lucide="video" class="w-5 h-5 text-violet-400"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400">
+              Creator Toolkit
+            </h1>
+            <span class="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
+              Editor Pro
+            </span>
+          </div>
+          <p class="text-xs text-zinc-400 hidden sm:block">Video to Audio • AI Word-by-Word SRT • Subtitle Studio</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions: API Key & Privacy -->
+      <div class="flex items-center gap-2">
+        <!-- AI Key Settings Button -->
+        <button onclick="openApiKeyModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-medium transition-colors" title="Configure AI Key">
+          <i data-lucide="key" class="w-3.5 h-3.5 text-violet-400"></i>
+          <span class="hidden sm:inline">AI Settings</span>
+          <span id="key-status-dot" class="w-2 h-2 rounded-full bg-zinc-600"></span>
+        </button>
+
+        <a href="#about-modal" onclick="openAboutModal()" class="p-2 text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-zinc-800/60 transition-colors" title="About & Privacy">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Scalable Tab Navigation Bar -->
+    <div class="max-w-6xl mx-auto px-4 border-t border-zinc-800/40">
+      <nav class="flex space-x-1 sm:space-x-3 overflow-x-auto py-2 no-scrollbar" aria-label="Tabs">
+        <!-- Tab 1: Video to Audio -->
+        <button id="tab-audio-btn" onclick="switchTab('audio')" class="tab-btn active flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-white bg-violet-600 shadow-sm shadow-violet-600/30">
+          <i data-lucide="music-2" class="w-4 h-4"></i>
+          <span>Video to Audio</span>
+        </button>
+
+        <!-- Tab 2: AI Word-by-Word SRT Generator (NEW) -->
+        <button id="tab-aisrt-btn" onclick="switchTab('aisrt')" class="tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50">
+          <i data-lucide="sparkles" class="w-4 h-4 text-violet-400"></i>
+          <span>Word-by-Word SRT</span>
+          <span class="text-[10px] px-1.5 py-0.2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded font-bold uppercase tracking-wider">AI</span>
+        </button>
+
+        <!-- Tab 3: Subtitle Converter -->
+        <button id="tab-subtitle-btn" onclick="switchTab('subtitle')" class="tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50">
+          <i data-lucide="subtitles" class="w-4 h-4"></i>
+          <span>Subtitle Studio</span>
+          <span class="text-[10px] px-1.5 py-0.2 bg-zinc-800 text-zinc-300 rounded font-mono">SRT ↔ VTT</span>
+        </button>
+
+        <!-- Tab 4: Future Tools -->
+        <button id="tab-upcoming-btn" onclick="switchTab('upcoming')" class="tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span>More Tools</span>
+          <span class="text-[10px] px-1.5 py-0.2 bg-zinc-800 text-zinc-400 rounded-full font-medium">Roadmap</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 pb-20">
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: VIDEO TO AUDIO EXTRACTOR -->
+    <!-- ============================================================== -->
+    <section id="tab-audio" class="tab-content transition-opacity duration-200">
+      <div class="mb-6">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span>Video to Audio Extractor</span>
+          <span class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30">
+            Studio Quality
+          </span>
+        </h2>
+        <p class="text-sm text-zinc-400 mt-1">
+          Extract high-fidelity MP3 or lossless WAV audio directly from your MP4, WebM, MOV, or MKV videos. 
+          Processed 100% on your device with native Web Audio API. Zero server upload.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Input Dropzone & Video Preview -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- Dropzone Card -->
+          <div id="dropzone" class="glass-card rounded-2xl p-6 border-2 border-dashed border-zinc-700/80 hover:border-violet-500/70 transition-all cursor-pointer relative group text-center bg-zinc-900/40">
+            <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mkv,.mov,.mp4,.webm" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+            
+            <div id="dropzone-empty" class="py-6 flex flex-col items-center justify-center">
+              <div class="w-16 h-16 mb-4 rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center group-hover:scale-105 group-hover:border-violet-500/50 transition-all text-violet-400 shadow-inner">
+                <i data-lucide="film" class="w-8 h-8"></i>
+              </div>
+              <p class="text-base font-semibold text-zinc-200">
+                Drag & drop your video here, or <span class="text-violet-400 underline underline-offset-4">browse files</span>
+              </p>
+              <p class="text-xs text-zinc-500 mt-2 max-w-sm">
+                Supported formats: <strong class="text-zinc-400">MP4, WEBM, MOV, MKV</strong>. Ideal for Premiere, VN, CapCut, and DaVinci timelines.
+              </p>
+              
+              <!-- Format badges -->
+              <div class="flex flex-wrap items-center justify-center gap-2 mt-4">
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">MP4 (AAC/H.264)</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">WEBM (Opus/VP9)</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">MOV (QuickTime)</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">MKV</span>
+              </div>
+            </div>
+
+            <!-- Dropzone Loaded State -->
+            <div id="dropzone-loaded" class="hidden text-left">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 flex-shrink-0">
+                    <i data-lucide="file-video" class="w-6 h-6"></i>
+                  </div>
+                  <div class="overflow-hidden">
+                    <h3 id="video-filename" class="text-sm font-semibold text-zinc-100 truncate max-w-[240px] sm:max-w-md">video.mp4</h3>
+                    <div class="flex items-center gap-3 text-xs text-zinc-400 mt-0.5">
+                      <span id="video-filesize">0 MB</span>
+                      <span>•</span>
+                      <span id="video-duration">--:--</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onclick="clearSelectedVideo(event)" class="text-xs px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors flex items-center gap-1 z-20">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                  <span>Change</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Player Preview (when video is selected) -->
+          <div id="video-preview-wrapper" class="hidden glass-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between text-xs font-medium text-zinc-300">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="monitor-play" class="w-4 h-4 text-violet-400"></i>
+                Source Video Preview
+              </span>
+              <span id="video-res-badge" class="font-mono text-zinc-400">Video Track Ready</span>
+            </div>
+            <div class="relative bg-black rounded-xl overflow-hidden aspect-video flex items-center justify-center border border-zinc-800">
+              <video id="video-player" controls playsinline class="w-full h-full object-contain"></video>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Settings, Extraction Controls & Output Result -->
+        <div class="lg:col-span-5 space-y-4">
+          <!-- Conversion Configuration Card -->
+          <div class="glass-card rounded-2xl p-5 space-y-5">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+              <i data-lucide="sliders" class="w-4 h-4 text-violet-400"></i>
+              Export Settings
+            </h3>
+
+            <!-- Format Chooser (WAV vs MP3) -->
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-2">Target Audio Format</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" id="fmt-wav-btn" onclick="selectAudioFormat('wav')" class="format-btn p-3 rounded-xl border border-violet-500 bg-violet-600/20 text-left transition-all">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-white">WAV</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-200">Lossless</span>
+                  </div>
+                  <p class="text-[11px] text-zinc-400 mt-1">16-Bit Studio Master PCM for professional video editing</p>
+                </button>
+
+                <button type="button" id="fmt-mp3-btn" onclick="selectAudioFormat('mp3')" class="format-btn p-3 rounded-xl border border-zinc-700 bg-zinc-800/40 text-left hover:border-zinc-600 transition-all">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-zinc-200">MP3</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-300">Compressed</span>
+                  </div>
+                  <p class="text-[11px] text-zinc-400 mt-1">Universal compatibility, small size for sharing</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- MP3 Bitrate Selector -->
+            <div id="mp3-bitrate-panel" class="hidden space-y-2 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800">
+              <label class="block text-xs font-medium text-zinc-400">MP3 Bitrate Quality</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button type="button" onclick="selectBitrate(320)" id="br-320-btn" class="bitrate-btn active px-2.5 py-1.5 rounded-lg text-xs font-medium bg-violet-600 text-white transition-all text-center">
+                  320 kbps <span class="block text-[9px] text-violet-200 font-normal">Max HQ</span>
+                </button>
+                <button type="button" onclick="selectBitrate(192)" id="br-192-btn" class="bitrate-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all text-center">
+                  192 kbps <span class="block text-[9px] text-zinc-500 font-normal">Balanced</span>
+                </button>
+                <button type="button" onclick="selectBitrate(128)" id="br-128-btn" class="bitrate-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all text-center">
+                  128 kbps <span class="block text-[9px] text-zinc-500 font-normal">Voice/Draft</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Channel Settings -->
+            <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/80 text-xs">
+              <div class="flex items-center gap-2">
+                <i data-lucide="radio" class="w-4 h-4 text-violet-400"></i>
+                <span class="text-zinc-300 font-medium">Channel Mode</span>
+              </div>
+              <span class="text-zinc-400 font-mono">Original (Stereo / 44.1 - 48kHz)</span>
+            </div>
+
+            <!-- Action Button -->
+            <button id="extract-btn" onclick="startAudioExtraction()" disabled class="w-full py-3.5 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-zinc-800 text-zinc-500 cursor-not-allowed">
+              <i data-lucide="disc" class="w-4 h-4"></i>
+              <span>Select Video to Extract</span>
+            </button>
+          </div>
+
+          <!-- Progress / Status Card -->
+          <div id="extraction-status-card" class="hidden glass-card rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <span id="extraction-status-text" class="text-xs font-semibold text-violet-400 uppercase tracking-wider flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+                </span>
+                Processing...
+              </span>
+              <span id="extraction-progress-pct" class="text-xs font-mono font-bold text-zinc-300">0%</span>
+            </div>
+
+            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div id="extraction-progress-bar" class="h-full bg-gradient-to-r from-violet-600 to-indigo-500 rounded-full transition-all duration-150 w-0"></div>
+            </div>
+
+            <p id="extraction-substatus" class="text-xs text-zinc-400">Reading video container...</p>
+          </div>
+
+          <!-- Output Audio Player & Download Card -->
+          <div id="extraction-result-card" class="hidden glass-card rounded-2xl p-5 space-y-4 border border-violet-500/40 bg-zinc-900/90">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                Extraction Complete!
+              </div>
+              <span id="output-meta-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">WAV • 0 MB</span>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="p-3 bg-black/60 rounded-xl border border-zinc-800 space-y-2">
+              <div class="flex items-center justify-between text-xs text-zinc-400">
+                <span id="output-filename" class="font-mono text-zinc-300 truncate max-w-[200px]">audio.wav</span>
+                <span id="output-duration">0:00</span>
+              </div>
+              <audio id="audio-result-player" controls class="w-full h-10 mt-1"></audio>
+            </div>
+
+            <!-- Download Button -->
+            <button id="download-audio-btn" onclick="downloadExtractedAudio()" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/30 transition-all flex items-center justify-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Download Extracted Audio</span>
+            </button>
+          </div>
+
+          <!-- Error Alert Banner -->
+          <div id="audio-error-banner" class="hidden p-4 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs flex items-start gap-3">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <p class="font-semibold" id="audio-error-title">Extraction Error</p>
+              <p class="text-zinc-400 mt-1" id="audio-error-desc">Could not decode audio track. Make sure the video contains an audio stream.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: AI WORD-BY-WORD SRT & LINK IMPORTER (NEW CORE FEATURE) -->
+    <!-- ============================================================== -->
+    <section id="tab-aisrt" class="tab-content hidden transition-opacity duration-200">
+      <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>AI Word-by-Word Subtitle Generator</span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-600/30 to-indigo-600/30 text-violet-300 border border-violet-500/40">
+              Millisecond Precision
+            </span>
+          </h2>
+          <p class="text-sm text-zinc-400 mt-1">
+            Generate exact word-by-word synced SRT subtitles for viral TikTok, Shorts & Reels. Input via file upload or video link (YouTube, TikTok, Facebook).
+          </p>
+        </div>
+
+        <button type="button" onclick="loadSampleWordSrt()" class="self-start md:self-auto px-3.5 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-violet-400"></i>
+          <span>Load Demo Word-by-Word Subtitles</span>
+        </button>
+      </div>
+
+      <!-- Main Input Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left: Input Methods (File Upload OR Link Importer) -->
+        <div class="lg:col-span-7 space-y-4">
+          
+          <!-- Source Mode Switcher: File Upload vs Video Link -->
+          <div class="glass-card rounded-2xl p-2 flex bg-zinc-900/70 border border-zinc-800">
+            <button type="button" id="source-tab-file" onclick="setAiSourceMode('file')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 bg-violet-600 text-white shadow-sm">
+              <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+              <span>Upload Video / Audio</span>
+            </button>
+            <button type="button" id="source-tab-link" onclick="setAiSourceMode('link')" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 text-zinc-400 hover:text-zinc-200">
+              <i data-lucide="link-2" class="w-4 h-4"></i>
+              <span>Paste Video Link (TikTok / FB / YT)</span>
+            </button>
+          </div>
+
+          <!-- SOURCE OPTION A: FILE DROPZONE -->
+          <div id="ai-file-panel" class="glass-card rounded-2xl p-6 border-2 border-dashed border-zinc-700/80 hover:border-violet-500/70 transition-all cursor-pointer relative group text-center bg-zinc-900/40">
+            <input type="file" id="ai-media-input" accept="audio/*,video/*,.mp4,.webm,.mov,.mkv,.mp3,.wav,.m4a,.aac" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+            
+            <div id="ai-dropzone-empty" class="py-5 flex flex-col items-center justify-center">
+              <div class="w-14 h-14 mb-3 rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center group-hover:scale-105 group-hover:border-violet-500/50 transition-all text-violet-400">
+                <i data-lucide="mic" class="w-7 h-7"></i>
+              </div>
+              <p class="text-sm font-semibold text-zinc-200">
+                Drop your video or voiceover here, or <span class="text-violet-400 underline underline-offset-4">browse</span>
+              </p>
+              <p class="text-xs text-zinc-500 mt-1.5">
+                MP4, MP3, WAV, M4A, MOV, WebM, MKV supported
+              </p>
+            </div>
+
+            <div id="ai-dropzone-loaded" class="hidden text-left">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                    <i data-lucide="file-audio" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 id="ai-file-name" class="text-xs font-semibold text-zinc-100 truncate max-w-[200px] sm:max-w-xs">recording.mp3</h4>
+                    <span id="ai-file-size" class="text-[11px] text-zinc-400">0 MB</span>
+                  </div>
+                </div>
+                <button type="button" onclick="clearAiMedia(event)" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700">
+                  Change
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SOURCE OPTION B: VIDEO LINK IMPORTER -->
+          <div id="ai-link-panel" class="hidden glass-card rounded-2xl p-5 space-y-3 bg-zinc-900/60">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                <i data-lucide="globe" class="w-4 h-4 text-violet-400"></i>
+                Paste Video / Reel / Short Link
+              </label>
+              <span id="detected-link-platform" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">Auto-Detect</span>
+            </div>
+
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input type="url" id="video-link-input" oninput="handleLinkInput(this.value)" placeholder="https://www.tiktok.com/@... or https://youtube.com/shorts/... or direct .mp4/.mp3" 
+                  class="w-full py-2.5 pl-3.5 pr-8 rounded-xl bg-black/60 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-violet-500">
+                <button type="button" onclick="clearLinkInput()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              <button type="button" onclick="fetchVideoFromLink()" id="fetch-link-btn" class="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 shadow-md shadow-violet-600/30">
+                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                <span>Fetch Clip</span>
+              </button>
+            </div>
+
+            <!-- Supported Link Platform Icons & Badges -->
+            <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-zinc-500">
+              <span class="flex items-center gap-1 text-zinc-400"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> TikTok</span>
+              <span>•</span>
+              <span class="flex items-center gap-1 text-zinc-400"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> YouTube Shorts</span>
+              <span>•</span>
+              <span class="flex items-center gap-1 text-zinc-400"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> Facebook Reels</span>
+              <span>•</span>
+              <span class="flex items-center gap-1 text-zinc-400"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i> Direct MP4/MP3</span>
+            </div>
+
+            <!-- Link Status Banner -->
+            <div id="link-status-banner" class="hidden p-3 rounded-xl bg-zinc-800/80 border border-zinc-700 text-xs text-zinc-300 flex items-center justify-between">
+              <span id="link-status-text" class="flex items-center gap-2">
+                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-violet-400"></i>
+                Connecting to video stream...
+              </span>
+            </div>
+          </div>
+
+          <!-- Video / Audio Player Preview for AI tab -->
+          <div id="ai-media-preview-card" class="hidden glass-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between text-xs text-zinc-300">
+              <span class="font-medium flex items-center gap-1.5">
+                <i data-lucide="play-circle" class="w-4 h-4 text-violet-400"></i>
+                Media Preview & Waveform Sync
+              </span>
+              <span id="ai-media-time" class="font-mono text-zinc-400">0:00 / 0:00</span>
+            </div>
+            
+            <div id="ai-video-box" class="hidden relative bg-black rounded-xl overflow-hidden aspect-video border border-zinc-800">
+              <video id="ai-video-player" controls playsinline class="w-full h-full object-contain"></video>
+            </div>
+
+            <div id="ai-audio-box" class="hidden p-2 bg-black/60 rounded-xl border border-zinc-800">
+              <audio id="ai-audio-player" controls class="w-full h-9"></audio>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Word-by-Word Settings, Generator & Interactive Sync Player -->
+        <div class="lg:col-span-5 space-y-4">
+          
+          <!-- Caption Timing Style Config -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+              <i data-lucide="type" class="w-4 h-4 text-violet-400"></i>
+              Caption Granularity & Style
+            </h3>
+
+            <!-- Timing Granularity Selector -->
+            <div class="grid grid-cols-3 gap-1.5">
+              <button type="button" id="style-word-btn" onclick="setCaptionStyle('word')" class="caption-style-btn active p-2.5 rounded-xl border border-violet-500 bg-violet-600/20 text-center transition-all">
+                <span class="block text-xs font-bold text-white">Word-by-Word</span>
+                <span class="block text-[9px] text-violet-200 mt-0.5">1 Word / Cue</span>
+              </button>
+              <button type="button" id="style-phrase-btn" onclick="setCaptionStyle('phrase')" class="caption-style-btn p-2.5 rounded-xl border border-zinc-700 bg-zinc-800/40 text-center transition-all hover:border-zinc-600">
+                <span class="block text-xs font-bold text-zinc-300">Short Phrase</span>
+                <span class="block text-[9px] text-zinc-500 mt-0.5">2-4 Words</span>
+              </button>
+              <button type="button" id="style-sentence-btn" onclick="setCaptionStyle('sentence')" class="caption-style-btn p-2.5 rounded-xl border border-zinc-700 bg-zinc-800/40 text-center transition-all hover:border-zinc-600">
+                <span class="block text-xs font-bold text-zinc-300">Sentence</span>
+                <span class="block text-[9px] text-zinc-500 mt-0.5">Traditional</span>
+              </button>
+            </div>
+
+            <!-- Language Selection -->
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1.5">Spoken Language</label>
+              <select id="ai-lang-select" class="w-full py-2 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-violet-500">
+                <option value="auto">🌐 Auto-Detect Language</option>
+                <option value="bn">🇧🇩 Bengali (বাংলা)</option>
+                <option value="en">🇺🇸 English (US/UK)</option>
+                <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+                <option value="es">🇪🇸 Spanish (Español)</option>
+                <option value="ar">🇸🇦 Arabic (العربية)</option>
+              </select>
+            </div>
+
+            <!-- Generate Action Button -->
+            <button id="generate-srt-btn" onclick="startWordSrtGeneration()" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/30 transition-all flex items-center justify-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Generate Word-by-Word SRT</span>
+            </button>
+          </div>
+
+          <!-- Progress Indicator -->
+          <div id="ai-progress-card" class="hidden glass-card rounded-2xl p-5 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span id="ai-progress-status" class="font-semibold text-violet-400 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                Transcribing Audio...
+              </span>
+              <span id="ai-progress-pct" class="font-mono text-zinc-300">0%</span>
+            </div>
+            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div id="ai-progress-bar" class="h-full bg-gradient-to-r from-violet-600 to-indigo-500 rounded-full transition-all duration-200 w-0"></div>
+            </div>
+            <p id="ai-progress-detail" class="text-xs text-zinc-400">Analyzing spoken phonemes and word timestamps...</p>
+          </div>
+
+          <!-- Interactive Live Karaoke Word Preview -->
+          <div id="ai-result-panel" class="hidden glass-card rounded-2xl p-5 space-y-4 border border-violet-500/40">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                Word Timestamps Ready
+              </span>
+              <span id="cue-count-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">0 Words Synced</span>
+            </div>
+
+            <!-- Karaoke Word Stream Container -->
+            <div class="p-3.5 rounded-xl bg-black/60 border border-zinc-800 max-h-48 overflow-y-auto space-y-1">
+              <p class="text-[11px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">Live Word Timeline (Click word to seek)</p>
+              <div id="karaoke-words-container" class="flex flex-wrap gap-1.5">
+                <!-- Words injected here -->
+              </div>
+            </div>
+
+            <!-- Download Buttons -->
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="downloadAiSubtitle('srt')" class="py-2.5 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-1.5 shadow-md shadow-violet-600/20">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Download .SRT</span>
+              </button>
+              <button type="button" onclick="downloadAiSubtitle('vtt')" class="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs border border-zinc-700 transition-all flex items-center justify-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-violet-400"></i>
+                <span>Download .VTT</span>
+              </button>
+            </div>
+            
+            <button type="button" onclick="copyAiSrt()" id="copy-ai-srt-btn" class="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs border border-zinc-800 transition-all flex items-center justify-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy Raw SRT Code</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: SUBTITLE CONVERTER (SRT ↔ VTT ↔ TXT) -->
+    <!-- ============================================================== -->
+    <section id="tab-subtitle" class="tab-content hidden transition-opacity duration-200">
+      <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>Subtitle Studio</span>
+            <span class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30">
+              Multilingual UTF-8
+            </span>
+          </h2>
+          <p class="text-sm text-zinc-400 mt-1">
+            Convert subtitles between SRT and WebVTT, or clean timestamps into ready-to-read voiceover scripts. Supports English, Bengali (বাংলা), Hindi, Japanese, and any language.
+          </p>
+        </div>
+
+        <button type="button" onclick="loadSampleSubtitles()" class="self-start md:self-auto px-3 py-1.5 text-xs rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors flex items-center gap-1.5">
+          <i data-lucide="file-code" class="w-3.5 h-3.5 text-violet-400"></i>
+          <span>Load Demo Subtitles (English & বাংলা)</span>
+        </button>
+      </div>
+
+      <!-- Conversion Control Strip -->
+      <div class="glass-card rounded-2xl p-4 mb-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-zinc-400">Convert to:</span>
+          <div class="flex bg-zinc-900 rounded-xl p-1 border border-zinc-800">
+            <button type="button" id="sub-mode-vtt" onclick="setSubtitleMode('vtt')" class="sub-mode-btn active px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white transition-all">
+              WebVTT (.vtt)
+            </button>
+            <button type="button" id="sub-mode-srt" onclick="setSubtitleMode('srt')" class="sub-mode-btn px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all">
+              SubRip (.srt)
+            </button>
+            <button type="button" id="sub-mode-txt" onclick="setSubtitleMode('txt')" class="sub-mode-btn px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all">
+              Clean Script (.txt)
+            </button>
+          </div>
+        </div>
+
+        <div id="txt-options-bar" class="hidden flex items-center gap-2 text-xs">
+          <span class="text-zinc-400">Script Layout:</span>
+          <div class="flex bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
+            <button type="button" id="txt-opt-lines" onclick="setScriptFormat('lines')" class="txt-fmt-btn active px-2.5 py-1 rounded text-xs bg-zinc-700 text-white">Line by Line</button>
+            <button type="button" id="txt-opt-para" onclick="setScriptFormat('para')" class="txt-fmt-btn px-2.5 py-1 rounded text-xs text-zinc-400 hover:text-zinc-200">Merge Paragraph</button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <input type="file" id="sub-file-input" accept=".srt,.vtt,.txt,text/plain,text/vtt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          <button type="button" class="px-3.5 py-1.5 text-xs font-medium rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all flex items-center gap-1.5">
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-violet-400"></i>
+            <span>Upload Subtitle File</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editors -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Input Editor -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                <i data-lucide="file-input" class="w-4 h-4 text-violet-400"></i>
+                Input Subtitle / Text
+              </span>
+              <span id="detected-format-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">Auto-Detect</span>
+            </div>
+            <button type="button" onclick="clearSubtitleInput()" class="text-xs text-zinc-400 hover:text-red-400 transition-colors flex items-center gap-1">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Clear</span>
+            </button>
+          </div>
+
+          <textarea id="sub-input-text" oninput="handleSubtitleInputChanged()" placeholder="Paste your SRT, VTT, or transcript text here, or drag & drop a .srt/.vtt file...
+
+Example:
+1
+00:00:01,000 --> 00:00:04,500
+Welcome to Creator Toolkit!
+
+2
+00:00:05,000 --> 00:00:08,200
+ভিডিও এডিটরদের জন্য সেরা টুলকিট।" 
+            class="w-full h-80 sm:h-96 p-3.5 rounded-xl bg-black/60 border border-zinc-800 text-zinc-200 placeholder-zinc-600 font-mono text-xs leading-relaxed focus:outline-none focus:border-violet-500/80 resize-none transition-colors"></textarea>
+
+          <div class="flex items-center justify-between text-[11px] text-zinc-500 font-mono pt-1">
+            <span id="input-stats">0 characters • 0 lines</span>
+            <span>UTF-8 Ready</span>
+          </div>
+        </div>
+
+        <!-- Output Editor -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                <i data-lucide="file-output" class="w-4 h-4 text-emerald-400"></i>
+                Converted Output
+              </span>
+              <span id="target-format-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-900/40 text-violet-300 border border-violet-700/50">WebVTT (.vtt)</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="copySubtitleOutput()" id="copy-btn" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span id="copy-btn-text">Copy</span>
+              </button>
+              <button type="button" onclick="downloadSubtitleFile()" id="download-sub-btn" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white shadow-sm shadow-violet-600/30 transition-all flex items-center gap-1">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Download</span>
+              </button>
+            </div>
+          </div>
+
+          <textarea id="sub-output-text" readonly placeholder="Converted output will appear here live as you type or change formats..." 
+            class="w-full h-80 sm:h-96 p-3.5 rounded-xl bg-black/60 border border-zinc-800 text-zinc-200 font-mono text-xs leading-relaxed focus:outline-none resize-none cursor-text"></textarea>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-400 font-mono pt-1">
+            <span id="output-stats">0 cues • 0 words</span>
+            <span id="voiceover-time" class="text-violet-300 font-medium">Est. Voiceover Time: 0s</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: UPCOMING CREATOR TOOLS (ROADMAP) -->
+    <!-- ============================================================== -->
+    <section id="tab-upcoming" class="tab-content hidden transition-opacity duration-200">
+      <div class="mb-6">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span>Creator Tools Roadmap</span>
+          <span class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-500/30">
+            Modular Architecture
+          </span>
+        </h2>
+        <p class="text-sm text-zinc-400 mt-1">
+          Additional lightweight client-side tools being prepared for upcoming releases of Creator Toolkit.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center">
+            <i data-lucide="file-archive" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Video Bitrate Compressor</h3>
+            <p class="text-xs text-zinc-400 mt-1">Downscale and trim high-bitrate phone recordings for Discord, WhatsApp & Slack.</p>
+          </div>
+          <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">In Development</span>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+            <i data-lucide="image" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">WebP ↔ PNG / JPG Studio</h3>
+            <p class="text-xs text-zinc-400 mt-1">Convert YouTube thumbnail assets and transparent stickers without quality loss.</p>
+          </div>
+          <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">In Development</span>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
+            <i data-lucide="crop" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Aspect Ratio Padder (9:16)</h3>
+            <p class="text-xs text-zinc-400 mt-1">Add blurred background letterboxing to 16:9 videos for TikTok, Reels & Shorts.</p>
+          </div>
+          <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">Planned</span>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">Waveform Video Generator</h3>
+            <p class="text-xs text-zinc-400 mt-1">Render animated podcast audio spectrum bars over background art.</p>
+          </div>
+          <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">Planned</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification Pop-up -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 shadow-2xl text-zinc-100 text-xs font-medium">
+    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <!-- API Key Modal -->
+  <div id="apikey-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-zinc-700 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="key" class="w-5 h-5 text-violet-400"></i>
+          AI Transcription Settings
+        </h3>
+        <button onclick="closeApiKeyModal()" class="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-xs text-zinc-400 leading-relaxed">
+        For exact millisecond word-by-word transcription, Creator Toolkit uses Google Gemini Flash Multimodal Audio AI. 
+        You can get a free key from Google AI Studio with zero billing required.
+      </p>
+      
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">Gemini API Key</label>
+        <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="w-full py-2.5 px-3.5 rounded-xl bg-black/70 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-violet-500 font-mono">
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="text-xs text-violet-400 hover:underline flex items-center gap-1">
+          <span>Get free key</span>
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+        <button type="button" onclick="saveApiKey()" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-colors">
+          Save Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About / Privacy Modal -->
+  <div id="about-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-zinc-700 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="shield" class="w-5 h-5 text-violet-400"></i>
+          About Creator Toolkit
+        </h3>
+        <button onclick="closeAboutModal()" class="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs text-zinc-300 leading-relaxed">
+        <p>
+          <strong class="text-zinc-100">Zero Server Storage:</strong> Your media files and subtitle scripts are processed locally in your browser memory or passed securely via direct client API.
+        </p>
+        <p>
+          <strong class="text-zinc-100">Viral Caption Ready:</strong> The word-by-word SRT outputs can be imported directly into CapCut, Premiere Pro, and DaVinci Resolve for kinetic text animations.
+        </p>
+      </div>
+      <button onclick="closeAboutModal()" class="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 font-semibold text-xs text-white transition-colors">
+        Got it
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full border-t border-zinc-800/80 bg-[#09090b]/90 py-5 text-center text-xs text-zinc-500">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>Creator Toolkit • Video Editor Edition • 100% Client-Side Engine</p>
+      <p class="text-zinc-600">Built for Premiere Pro, DaVinci Resolve, CapCut, VN & Mobile Editors</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================= -->
+  <!-- APPLICATION LOGIC & CLIENT-SIDE ENGINES -->
+  <!-- ============================================================= -->
+  <script>
+    function refreshIcons() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshIcons();
+      checkSavedApiKey();
+    });
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'text-white', 'bg-violet-600', 'shadow-sm', 'shadow-violet-600/30');
+        btn.classList.add('text-zinc-400');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      const activeBtn = document.getElementById(`tab-${tabId}-btn`);
+      const activeContent = document.getElementById(`tab-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'text-white', 'bg-violet-600', 'shadow-sm', 'shadow-violet-600/30');
+        activeBtn.classList.remove('text-zinc-400');
+      }
+      if (activeContent) {
+        activeContent.classList.remove('hidden');
+      }
+      refreshIcons();
+    }
+
+    // Modal Control
+    function openAboutModal() {
+      document.getElementById('about-modal').classList.remove('hidden');
+    }
+    function closeAboutModal() {
+      document.getElementById('about-modal').classList.add('hidden');
+    }
+
+    function openApiKeyModal() {
+      const savedKey = localStorage.getItem('gemini_api_key') || '';
+      document.getElementById('gemini-key-input').value = savedKey;
+      document.getElementById('apikey-modal').classList.remove('hidden');
+    }
+    function closeApiKeyModal() {
+      document.getElementById('apikey-modal').classList.add('hidden');
+    }
+    function saveApiKey() {
+      const val = document.getElementById('gemini-key-input').value.trim();
+      if (val) {
+        localStorage.setItem('gemini_api_key', val);
+        showToast("Gemini API Key saved!");
+      } else {
+        localStorage.removeItem('gemini_api_key');
+        showToast("API Key cleared.");
+      }
+      checkSavedApiKey();
+      closeApiKeyModal();
+    }
+    function checkSavedApiKey() {
+      const saved = localStorage.getItem('gemini_api_key');
+      const dot = document.getElementById('key-status-dot');
+      if (saved) {
+        dot.classList.remove('bg-zinc-600');
+        dot.classList.add('bg-emerald-400');
+      } else {
+        dot.classList.add('bg-zinc-600');
+        dot.classList.remove('bg-emerald-400');
+      }
+    }
+
+    // Toast
+    let toastTimeout;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2500);
+    }
+
+    function formatBytes(bytes, decimals = 1) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    function saveBlobFile(blob, filename) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.downloadFile === 'function') {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+          const base64Data = reader.result.split(',')[1];
+          window.AndroidBridge.downloadFile(base64Data, filename, blob.type);
+          showToast(`Saved ${filename} via Android!`);
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+      showToast(`Downloading ${filename}`);
+    }
+
+    // ==============================================================
+    // FEATURE 1: VIDEO TO AUDIO EXTRACTOR
+    // ==============================================================
+    let currentVideoFile = null;
+    let selectedAudioFormat = 'wav';
+    let selectedMp3Bitrate = 320;
+    let extractedAudioBlob = null;
+    let extractedAudioUrl = null;
+    let extractedFilename = '';
+
+    const videoFileInput = document.getElementById('video-file-input');
+    const dropzone = document.getElementById('dropzone');
+    const dropzoneEmpty = document.getElementById('dropzone-empty');
+    const dropzoneLoaded = document.getElementById('dropzone-loaded');
+    const videoFilename = document.getElementById('video-filename');
+    const videoFilesize = document.getElementById('video-filesize');
+    const videoDuration = document.getElementById('video-duration');
+    const videoPlayerWrapper = document.getElementById('video-preview-wrapper');
+    const videoPlayer = document.getElementById('video-player');
+    const extractBtn = document.getElementById('extract-btn');
+    const extractionStatusCard = document.getElementById('extraction-status-card');
+    const extractionResultCard = document.getElementById('extraction-result-card');
+    const extractionProgressBar = document.getElementById('extraction-progress-bar');
+    const extractionProgressPct = document.getElementById('extraction-progress-pct');
+    const extractionSubstatus = document.getElementById('extraction-substatus');
+    const audioErrorBanner = document.getElementById('audio-error-banner');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('border-violet-500', 'bg-violet-950/20');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('border-violet-500', 'bg-violet-950/20');
+      }, false);
+    });
+    dropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        handleVideoFileSelected(files[0]);
+      }
+    });
+
+    videoFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleVideoFileSelected(e.target.files[0]);
+      }
+    });
+
+    function handleVideoFileSelected(file) {
+      audioErrorBanner.classList.add('hidden');
+      extractionResultCard.classList.add('hidden');
+      extractionStatusCard.classList.add('hidden');
+      
+      currentVideoFile = file;
+      videoFilename.textContent = file.name;
+      videoFilesize.textContent = formatBytes(file.size);
+
+      dropzoneEmpty.classList.add('hidden');
+      dropzoneLoaded.classList.remove('hidden');
+
+      const fileUrl = URL.createObjectURL(file);
+      videoPlayer.src = fileUrl;
+      videoPlayerWrapper.classList.remove('hidden');
+
+      videoPlayer.onloadedmetadata = () => {
+        videoDuration.textContent = formatTime(videoPlayer.duration);
+        document.getElementById('video-res-badge').textContent = 
+          `${videoPlayer.videoWidth}x${videoPlayer.videoHeight} • ${formatTime(videoPlayer.duration)}`;
+      };
+
+      extractBtn.disabled = false;
+      extractBtn.classList.remove('bg-zinc-800', 'text-zinc-500', 'cursor-not-allowed');
+      extractBtn.classList.add('bg-violet-600', 'hover:bg-violet-500', 'text-white', 'shadow-lg', 'shadow-violet-600/30');
+      extractBtn.innerHTML = `<i data-lucide="disc" class="w-4 h-4"></i><span>Extract Audio (${selectedAudioFormat.toUpperCase()})</span>`;
+      refreshIcons();
+    }
+
+    function clearSelectedVideo(e) {
+      if (e) e.stopPropagation();
+      currentVideoFile = null;
+      videoFileInput.value = '';
+      if (videoPlayer.src) {
+        URL.revokeObjectURL(videoPlayer.src);
+        videoPlayer.src = '';
+      }
+      videoPlayerWrapper.classList.add('hidden');
+      dropzoneLoaded.classList.add('hidden');
+      dropzoneEmpty.classList.remove('hidden');
+
+      extractBtn.disabled = true;
+      extractBtn.classList.add('bg-zinc-800', 'text-zinc-500', 'cursor-not-allowed');
+      extractBtn.classList.remove('bg-violet-600', 'hover:bg-violet-500', 'text-white', 'shadow-lg', 'shadow-violet-600/30');
+      extractBtn.innerHTML = `<i data-lucide="disc" class="w-4 h-4"></i><span>Select Video to Extract</span>`;
+
+      extractionStatusCard.classList.add('hidden');
+      extractionResultCard.classList.add('hidden');
+      audioErrorBanner.classList.add('hidden');
+      refreshIcons();
+    }
+
+    function selectAudioFormat(fmt) {
+      selectedAudioFormat = fmt;
+      const wavBtn = document.getElementById('fmt-wav-btn');
+      const mp3Btn = document.getElementById('fmt-mp3-btn');
+      const mp3Panel = document.getElementById('mp3-bitrate-panel');
+
+      if (fmt === 'wav') {
+        wavBtn.classList.add('border-violet-500', 'bg-violet-600/20');
+        wavBtn.classList.remove('border-zinc-700', 'bg-zinc-800/40');
+        mp3Btn.classList.remove('border-violet-500', 'bg-violet-600/20');
+        mp3Btn.classList.add('border-zinc-700', 'bg-zinc-800/40');
+        mp3Panel.classList.add('hidden');
+      } else {
+        mp3Btn.classList.add('border-violet-500', 'bg-violet-600/20');
+        mp3Btn.classList.remove('border-zinc-700', 'bg-zinc-800/40');
+        wavBtn.classList.remove('border-violet-500', 'bg-violet-600/20');
+        wavBtn.classList.add('border-zinc-700', 'bg-zinc-800/40');
+        mp3Panel.classList.remove('hidden');
+      }
+
+      if (currentVideoFile) {
+        extractBtn.innerHTML = `<i data-lucide="disc" class="w-4 h-4"></i><span>Extract Audio (${selectedAudioFormat.toUpperCase()})</span>`;
+        refreshIcons();
+      }
+    }
+
+    function selectBitrate(br) {
+      selectedMp3Bitrate = br;
+      [320, 192, 128].forEach(rate => {
+        const btn = document.getElementById(`br-${rate}-btn`);
+        if (rate === br) {
+          btn.classList.add('bg-violet-600', 'text-white');
+          btn.classList.remove('bg-zinc-800', 'text-zinc-400');
+        } else {
+          btn.classList.remove('bg-violet-600', 'text-white');
+          btn.classList.add('bg-zinc-800', 'text-zinc-400');
+        }
+      });
+    }
+
+    function updateExtractionProgress(percent, substatus) {
+      extractionProgressBar.style.width = `${percent}%`;
+      extractionProgressPct.textContent = `${percent}%`;
+      if (substatus) {
+        extractionSubstatus.textContent = substatus;
+      }
+    }
+
+    async function startAudioExtraction() {
+      if (!currentVideoFile) return;
+
+      audioErrorBanner.classList.add('hidden');
+      extractionResultCard.classList.add('hidden');
+      extractionStatusCard.classList.remove('hidden');
+      extractBtn.disabled = true;
+
+      try {
+        updateExtractionProgress(10, "Reading video file into memory...");
+        const arrayBuffer = await currentVideoFile.arrayBuffer();
+
+        updateExtractionProgress(35, "Decoding audio stream via Web Audio API...");
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error("Web Audio API is not supported in this browser environment.");
+        }
+        const audioCtx = new AudioContextClass();
+
+        let audioBuffer;
+        try {
+          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch (decodeErr) {
+          throw new Error("Failed to decode audio track. The video might not contain an audio track, or its audio format is unsupported.");
+        }
+
+        if (!audioBuffer || audioBuffer.numberOfChannels === 0 || audioBuffer.length === 0) {
+          throw new Error("No playable audio channels were found in this video.");
+        }
+
+        const baseName = currentVideoFile.name.replace(/\.[^/.]+$/, "");
+        
+        if (selectedAudioFormat === 'wav') {
+          updateExtractionProgress(70, "Encoding lossless 16-bit PCM WAV...");
+          await new Promise(r => setTimeout(r, 50));
+          const wavArrayBuffer = encodeAudioBufferToWav(audioBuffer);
+          extractedAudioBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
+          extractedFilename = `${baseName}_audio.wav`;
+        } else {
+          updateExtractionProgress(60, `Encoding MP3 (${selectedMp3Bitrate} kbps) with lamejs...`);
+          extractedAudioBlob = await encodeAudioBufferToMp3(audioBuffer, selectedMp3Bitrate, (pct) => {
+            const mapped = 60 + Math.round((pct / 100) * 35);
+            updateExtractionProgress(mapped, `Encoding MP3 frames: ${pct}%...`);
+          });
+          extractedFilename = `${baseName}_audio.mp3`;
+        }
+
+        updateExtractionProgress(100, "Done! Audio ready for download.");
+        setTimeout(() => {
+          showExtractionResult(audioBuffer.duration);
+        }, 300);
+
+      } catch (err) {
+        console.error("Extraction error:", err);
+        extractionStatusCard.classList.add('hidden');
+        audioErrorBanner.classList.remove('hidden');
+        document.getElementById('audio-error-title').textContent = "Extraction Failed";
+        document.getElementById('audio-error-desc').textContent = err.message || "An unexpected error occurred.";
+      } finally {
+        extractBtn.disabled = false;
+      }
+    }
+
+    function showExtractionResult(durationSec) {
+      extractionStatusCard.classList.add('hidden');
+      extractionResultCard.classList.remove('hidden');
+
+      if (extractedAudioUrl) {
+        URL.revokeObjectURL(extractedAudioUrl);
+      }
+      extractedAudioUrl = URL.createObjectURL(extractedAudioBlob);
+      
+      const audioResultPlayer = document.getElementById('audio-result-player');
+      audioResultPlayer.src = extractedAudioUrl;
+
+      document.getElementById('output-filename').textContent = extractedFilename;
+      document.getElementById('output-duration').textContent = formatTime(durationSec);
+      document.getElementById('output-meta-badge').textContent = 
+        `${selectedAudioFormat.toUpperCase()} • ${formatBytes(extractedAudioBlob.size)}`;
+      
+      refreshIcons();
+    }
+
+    function downloadExtractedAudio() {
+      if (!extractedAudioBlob) return;
+      saveBlobFile(extractedAudioBlob, extractedFilename);
+    }
+
+    function encodeAudioBufferToWav(audioBuffer) {
+      const numChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const bitDepth = 16;
+      const bytesPerSample = bitDepth / 8;
+      const blockAlign = numChannels * bytesPerSample;
+      const length = audioBuffer.length;
+      const interleaved = new Float32Array(length * numChannels);
+      
+      if (numChannels === 2) {
+        const ch0 = audioBuffer.getChannelData(0);
+        const ch1 = audioBuffer.getChannelData(1);
+        let idx = 0;
+        for (let i = 0; i < length; i++) {
+          interleaved[idx++] = ch0[i];
+          interleaved[idx++] = ch1[i];
+        }
+      } else {
+        const ch0 = audioBuffer.getChannelData(0);
+        for (let i = 0; i < length; i++) {
+          interleaved[i] = ch0[i];
+        }
+      }
+
+      const dataByteLength = interleaved.length * bytesPerSample;
+      const wavBuffer = new ArrayBuffer(44 + dataByteLength);
+      const view = new DataView(wavBuffer);
+
+      writeAscii(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataByteLength, true);
+      writeAscii(view, 8, 'WAVE');
+      writeAscii(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitDepth, true);
+      writeAscii(view, 36, 'data');
+      view.setUint32(40, dataByteLength, true);
+
+      let offset = 44;
+      for (let i = 0; i < interleaved.length; i++) {
+        let s = Math.max(-1, Math.min(1, interleaved[i]));
+        const sample16 = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        view.setInt16(offset, sample16, true);
+        offset += 2;
+      }
+      return wavBuffer;
+    }
+
+    function writeAscii(view, offset, str) {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    }
+
+    async function encodeAudioBufferToMp3(audioBuffer, bitrateKbps, onProgress) {
+      if (typeof lamejs === 'undefined') {
+        throw new Error("lamejs MP3 encoder is loading. Please verify internet access or use WAV format.");
+      }
+      const numChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const mp3encoder = new lamejs.Mp3Encoder(numChannels > 1 ? 2 : 1, sampleRate, bitrateKbps);
+
+      const ch0 = audioBuffer.getChannelData(0);
+      const ch1 = numChannels > 1 ? audioBuffer.getChannelData(1) : ch0;
+
+      const leftInt16 = new Int16Array(ch0.length);
+      for (let i = 0; i < ch0.length; i++) {
+        const s = Math.max(-1, Math.min(1, ch0[i]));
+        leftInt16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+
+      let rightInt16 = leftInt16;
+      if (numChannels > 1) {
+        rightInt16 = new Int16Array(ch1.length);
+        for (let i = 0; i < ch1.length; i++) {
+          const s = Math.max(-1, Math.min(1, ch1[i]));
+          rightInt16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+      }
+
+      const sampleBlockSize = 1152;
+      const mp3Data = [];
+      const total = leftInt16.length;
+
+      for (let i = 0; i < total; i += sampleBlockSize) {
+        const leftChunk = leftInt16.subarray(i, i + sampleBlockSize);
+        let mp3buf;
+        if (numChannels > 1) {
+          const rightChunk = rightInt16.subarray(i, i + sampleBlockSize);
+          mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+        } else {
+          mp3buf = mp3encoder.encodeBuffer(leftChunk);
+        }
+        if (mp3buf && mp3buf.length > 0) {
+          mp3Data.push(mp3buf);
+        }
+        if (onProgress && i % (sampleBlockSize * 25) === 0) {
+          onProgress(Math.min(99, Math.round((i / total) * 100)));
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      const flushed = mp3encoder.flush();
+      if (flushed && flushed.length > 0) {
+        mp3Data.push(flushed);
+      }
+      if (onProgress) onProgress(100);
+      return new Blob(mp3Data, { type: 'audio/mp3' });
+    }
+
+    // ==============================================================
+    // FEATURE 2: AI WORD-BY-WORD SRT & LINK IMPORTER
+    // ==============================================================
+    let aiSourceMode = 'file';
+    let currentAiMediaFile = null;
+    let currentAiMediaUrl = null;
+    let currentCaptionStyle = 'word';
+    let generatedWordsArray = [];
+    let rawGeneratedSrt = '';
+    let rawGeneratedVtt = '';
+
+    const aiMediaInput = document.getElementById('ai-media-input');
+    const aiDropzoneEmpty = document.getElementById('ai-dropzone-empty');
+    const aiDropzoneLoaded = document.getElementById('ai-dropzone-loaded');
+    const aiFileName = document.getElementById('ai-file-name');
+    const aiFileSize = document.getElementById('ai-file-size');
+    const aiMediaPreviewCard = document.getElementById('ai-media-preview-card');
+    const aiVideoBox = document.getElementById('ai-video-box');
+    const aiAudioBox = document.getElementById('ai-audio-box');
+    const aiVideoPlayer = document.getElementById('ai-video-player');
+    const aiAudioPlayer = document.getElementById('ai-audio-player');
+    const videoLinkInput = document.getElementById('video-link-input');
+    const linkStatusBanner = document.getElementById('link-status-banner');
+    const linkStatusText = document.getElementById('link-status-text');
+    const detectedLinkPlatform = document.getElementById('detected-link-platform');
+
+    aiMediaInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleAiMediaFile(e.target.files[0]);
+      }
+    });
+
+    function setAiSourceMode(mode) {
+      aiSourceMode = mode;
+      const fileTab = document.getElementById('source-tab-file');
+      const linkTab = document.getElementById('source-tab-link');
+      const filePanel = document.getElementById('ai-file-panel');
+      const linkPanel = document.getElementById('ai-link-panel');
+
+      if (mode === 'file') {
+        fileTab.classList.add('bg-violet-600', 'text-white', 'shadow-sm');
+        fileTab.classList.remove('text-zinc-400');
+        linkTab.classList.remove('bg-violet-600', 'text-white', 'shadow-sm');
+        linkTab.classList.add('text-zinc-400');
+        filePanel.classList.remove('hidden');
+        linkPanel.classList.add('hidden');
+      } else {
+        linkTab.classList.add('bg-violet-600', 'text-white', 'shadow-sm');
+        linkTab.classList.remove('text-zinc-400');
+        fileTab.classList.remove('bg-violet-600', 'text-white', 'shadow-sm');
+        fileTab.classList.add('text-zinc-400');
+        linkPanel.classList.remove('hidden');
+        filePanel.classList.add('hidden');
+      }
+    }
+
+    function handleAiMediaFile(file) {
+      currentAiMediaFile = file;
+      aiFileName.textContent = file.name;
+      aiFileSize.textContent = formatBytes(file.size);
+
+      aiDropzoneEmpty.classList.add('hidden');
+      aiDropzoneLoaded.classList.remove('hidden');
+
+      if (currentAiMediaUrl) URL.revokeObjectURL(currentAiMediaUrl);
+      currentAiMediaUrl = URL.createObjectURL(file);
+
+      setupActiveAiPlayer(currentAiMediaUrl, file.type.startsWith('video'));
+      showToast(`Loaded ${file.name}`);
+    }
+
+    function clearAiMedia(e) {
+      if (e) e.stopPropagation();
+      currentAiMediaFile = null;
+      aiMediaInput.value = '';
+      if (currentAiMediaUrl) {
+        URL.revokeObjectURL(currentAiMediaUrl);
+        currentAiMediaUrl = null;
+      }
+      aiDropzoneLoaded.classList.add('hidden');
+      aiDropzoneEmpty.classList.remove('hidden');
+      aiMediaPreviewCard.classList.add('hidden');
+      aiVideoPlayer.src = '';
+      aiAudioPlayer.src = '';
+    }
+
+    function handleLinkInput(url) {
+      url = url.trim();
+      if (!url) {
+        detectedLinkPlatform.textContent = 'Auto-Detect';
+        return;
+      }
+      if (/tiktok\.com/i.test(url)) {
+        detectedLinkPlatform.textContent = '🎵 TikTok Detected';
+      } else if (/youtube\.com|youtu\.be/i.test(url)) {
+        detectedLinkPlatform.textContent = '▶️ YouTube Shorts / Video';
+      } else if (/facebook\.com|fb\.watch/i.test(url)) {
+        detectedLinkPlatform.textContent = '📘 Facebook Reel / Video';
+      } else if (/\.(mp4|mp3|wav|webm|m4a)(\?.*)?$/i.test(url)) {
+        detectedLinkPlatform.textContent = '🌐 Direct Media Stream';
+      } else {
+        detectedLinkPlatform.textContent = '🌐 Web Video Link';
+      }
+    }
+
+    function clearLinkInput() {
+      videoLinkInput.value = '';
+      detectedLinkPlatform.textContent = 'Auto-Detect';
+      linkStatusBanner.classList.add('hidden');
+    }
+
+    async function fetchVideoFromLink() {
+      const url = videoLinkInput.value.trim();
+      if (!url) {
+        showToast("Please paste a video or audio link first.");
+        return;
+      }
+
+      linkStatusBanner.classList.remove('hidden');
+      linkStatusText.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-violet-400"></i> Connecting to video stream...`;
+      refreshIcons();
+
+      try {
+        if (/\.(mp4|mp3|wav|webm|m4a)(\?.*)?$/i.test(url)) {
+          currentAiMediaUrl = url;
+          setupActiveAiPlayer(url, url.includes('.mp4') || url.includes('.webm'));
+          linkStatusText.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Direct video stream loaded!`;
+          showToast("Direct media stream ready!");
+          return;
+        }
+
+        linkStatusText.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-violet-400"></i> Extracting stream from ${detectedLinkPlatform.textContent}...`;
+        refreshIcons();
+
+        const response = await fetch('https://api.cobalt.tools/', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: url,
+            downloadMode: 'audio'
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && (data.url || (data.picker && data.picker[0]))) {
+            const streamUrl = data.url || data.picker[0].url;
+            currentAiMediaUrl = streamUrl;
+            setupActiveAiPlayer(streamUrl, false);
+            linkStatusText.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Audio stream ready for transcription!`;
+            showToast("Stream extracted successfully!");
+            return;
+          }
+        }
+        
+        throw new Error("Could not automatically download stream from this provider. You can save/download the clip and drop it in the Upload tab.");
+      } catch (err) {
+        console.warn("Link fetch error:", err);
+        linkStatusText.innerHTML = `<span class="text-amber-400 flex items-center gap-1.5"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Platform protection detected. Please download the reel/clip and drop it in the Upload tab.</span>`;
+        refreshIcons();
+      }
+    }
+
+    function setupActiveAiPlayer(mediaUrl, isVideo) {
+      aiMediaPreviewCard.classList.remove('hidden');
+      if (isVideo) {
+        aiVideoBox.classList.remove('hidden');
+        aiAudioBox.classList.add('hidden');
+        aiVideoPlayer.src = mediaUrl;
+        setupPlaybackTimeTracking(aiVideoPlayer);
+      } else {
+        aiAudioBox.classList.remove('hidden');
+        aiVideoBox.classList.add('hidden');
+        aiAudioPlayer.src = mediaUrl;
+        setupPlaybackTimeTracking(aiAudioPlayer);
+      }
+      refreshIcons();
+    }
+
+    function setupPlaybackTimeTracking(playerElement) {
+      playerElement.ontimeupdate = () => {
+        const cur = playerElement.currentTime;
+        const dur = playerElement.duration || 0;
+        document.getElementById('ai-media-time').textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+        highlightActiveKaraokeWord(cur);
+      };
+    }
+
+    function setCaptionStyle(style) {
+      currentCaptionStyle = style;
+      ['word', 'phrase', 'sentence'].forEach(s => {
+        const btn = document.getElementById(`style-${s}-btn`);
+        if (s === style) {
+          btn.classList.add('active', 'border-violet-500', 'bg-violet-600/20');
+          btn.classList.remove('border-zinc-700', 'bg-zinc-800/40');
+        } else {
+          btn.classList.remove('active', 'border-violet-500', 'bg-violet-600/20');
+          btn.classList.add('border-zinc-700', 'bg-zinc-800/40');
+        }
+      });
+
+      if (generatedWordsArray.length > 0) {
+        rebuildSubtitlesFromWords(generatedWordsArray, style);
+      }
+    }
+
+    function secondsToSrtTimestamp(sec) {
+      const hrs = Math.floor(sec / 3600);
+      const mins = Math.floor((sec % 3600) / 60);
+      const secs = Math.floor(sec % 60);
+      const millis = Math.floor((sec % 1) * 1000);
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
+    }
+
+    function secondsToVttTimestamp(sec) {
+      return secondsToSrtTimestamp(sec).replace(',', '.');
+    }
+
+    async function startWordSrtGeneration() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const progressCard = document.getElementById('ai-progress-card');
+      const progressBar = document.getElementById('ai-progress-bar');
+      const progressPct = document.getElementById('ai-progress-pct');
+      const progressStatus = document.getElementById('ai-progress-status');
+      const progressDetail = document.getElementById('ai-progress-detail');
+      const resultPanel = document.getElementById('ai-result-panel');
+
+      if (!currentAiMediaFile && !currentAiMediaUrl) {
+        showToast("Please upload an audio/video file or paste a link first.");
+        return;
+      }
+
+      progressCard.classList.remove('hidden');
+      resultPanel.classList.add('hidden');
+      progressBar.style.width = '15%';
+      progressPct.textContent = '15%';
+      progressDetail.textContent = 'Reading audio track into memory...';
+
+      try {
+        if (!apiKey) {
+          progressBar.style.width = '40%';
+          progressPct.textContent = '40%';
+          progressDetail.textContent = 'No Gemini API Key set. Generating smart phoneme-timed demo...';
+          await new Promise(r => setTimeout(r, 600));
+
+          loadSampleWordSrt();
+          progressCard.classList.add('hidden');
+          showToast("Generated demo word timestamps! To transcribe real audio, click 'AI Settings' to add a free Gemini key.");
+          return;
+        }
+
+        progressBar.style.width = '35%';
+        progressPct.textContent = '35%';
+        progressDetail.textContent = 'Extracting audio frequencies for transcription...';
+
+        let audioBlob = currentAiMediaFile;
+        if (!audioBlob && currentAiMediaUrl) {
+          const fetchRes = await fetch(currentAiMediaUrl);
+          audioBlob = await fetchRes.blob();
+        }
+
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve) => {
+          reader.onloadend = () => {
+            const b64 = reader.result.split(',')[1];
+            resolve(b64);
+          };
+          reader.readAsDataURL(audioBlob);
+        });
+
+        const base64Audio = await base64Promise;
+
+        progressBar.style.width = '60%';
+        progressPct.textContent = '60%';
+        progressDetail.textContent = 'Gemini AI is transcribing exact millisecond word timestamps...';
+
+        const promptText = `Listen to this audio carefully and transcribe every single spoken word with exact millisecond timestamps.
+Return a STRICT JSON array of objects. Do not include markdown or backticks. Format:
+[
+  { "word": "Hello", "start": 0.500, "end": 0.850 },
+  { "word": "world", "start": 0.860, "end": 1.200 }
+]
+Language: Support Bengali (বাংলা), English, or whatever is spoken. Ensure every individual word has an accurate start and end timestamp in seconds.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                {
+                  inline_data: {
+                    mime_type: audioBlob.type || 'audio/mp3',
+                    data: base64Audio
+                  }
+                }
+              ]
+            }]
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData?.error?.message || "Gemini API error.");
+        }
+
+        const data = await response.json();
+        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const words = JSON.parse(cleanJson);
+
+        if (!Array.isArray(words) || words.length === 0) {
+          throw new Error("No words detected in audio.");
+        }
+
+        progressBar.style.width = '100%';
+        progressPct.textContent = '100%';
+        progressDetail.textContent = 'Building word-by-word SRT cues...';
+
+        generatedWordsArray = words;
+        renderKaraokeWords(words);
+        rebuildSubtitlesFromWords(words, currentCaptionStyle);
+
+        progressCard.classList.add('hidden');
+        resultPanel.classList.remove('hidden');
+        showToast("Word-by-word SRT generated successfully!");
+
+      } catch (err) {
+        console.error("AI Transcription failed:", err);
+        progressCard.classList.add('hidden');
+        showToast(`AI error: ${err.message}. Loading demo mode instead.`);
+        loadSampleWordSrt();
+      }
+    }
+
+    function rebuildSubtitlesFromWords(words, style) {
+      if (!words || words.length === 0) return;
+
+      const srtBlocks = [];
+      const vttBlocks = [];
+      let cueIndex = 1;
+
+      if (style === 'word') {
+        for (let i = 0; i < words.length; i++) {
+          const w = words[i];
+          const start = secondsToSrtTimestamp(w.start);
+          const end = secondsToSrtTimestamp(Math.max(w.start + 0.15, w.end));
+          srtBlocks.push(`${cueIndex}\n${start} --> ${end}\n${w.word}`);
+          vttBlocks.push(`${cueIndex}\n${secondsToVttTimestamp(w.start)} --> ${secondsToVttTimestamp(Math.max(w.start + 0.15, w.end))}\n${w.word}`);
+          cueIndex++;
+        }
+      } else if (style === 'phrase') {
+        const chunkSize = 3;
+        for (let i = 0; i < words.length; i += chunkSize) {
+          const chunk = words.slice(i, i + chunkSize);
+          const startSec = chunk[0].start;
+          const endSec = chunk[chunk.length - 1].end;
+          const text = chunk.map(c => c.word).join(' ');
+          
+          srtBlocks.push(`${cueIndex}\n${secondsToSrtTimestamp(startSec)} --> ${secondsToSrtTimestamp(endSec)}\n${text}`);
+          vttBlocks.push(`${cueIndex}\n${secondsToVttTimestamp(startSec)} --> ${secondsToVttTimestamp(endSec)}\n${text}`);
+          cueIndex++;
+        }
+      } else {
+        let currentGroup = [];
+        for (let i = 0; i < words.length; i++) {
+          const w = words[i];
+          currentGroup.push(w);
+          const isPunctuation = /[.!?।]$/.test(w.word);
+          const isLast = i === words.length - 1;
+
+          if (isPunctuation || isLast || currentGroup.length >= 8) {
+            const startSec = currentGroup[0].start;
+            const endSec = currentGroup[currentGroup.length - 1].end;
+            const text = currentGroup.map(c => c.word).join(' ');
+
+            srtBlocks.push(`${cueIndex}\n${secondsToSrtTimestamp(startSec)} --> ${secondsToSrtTimestamp(endSec)}\n${text}`);
+            vttBlocks.push(`${cueIndex}\n${secondsToVttTimestamp(startSec)} --> ${secondsToVttTimestamp(endSec)}\n${text}`);
+            cueIndex++;
+            currentGroup = [];
+          }
+        }
+      }
+
+      rawGeneratedSrt = srtBlocks.join('\n\n');
+      rawGeneratedVtt = 'WEBVTT\n\n' + vttBlocks.join('\n\n');
+      document.getElementById('cue-count-badge').textContent = `${cueIndex - 1} ${style.toUpperCase()} Cues Ready`;
+    }
+
+    function renderKaraokeWords(words) {
+      const container = document.getElementById('karaoke-words-container');
+      container.innerHTML = '';
+
+      words.forEach((item, idx) => {
+        const span = document.createElement('span');
+        span.id = `k-word-${idx}`;
+        span.textContent = item.word;
+        span.className = "cursor-pointer px-2 py-0.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/80 hover:bg-violet-600/30 transition-all";
+        span.onclick = () => {
+          const player = !aiVideoPlayer.paused ? aiVideoPlayer : aiAudioPlayer;
+          player.currentTime = item.start;
+          player.play();
+        };
+        container.appendChild(span);
+      });
+    }
+
+    function highlightActiveKaraokeWord(currentTime) {
+      if (!generatedWordsArray || generatedWordsArray.length === 0) return;
+
+      generatedWordsArray.forEach((item, idx) => {
+        const el = document.getElementById(`k-word-${idx}`);
+        if (!el) return;
+        if (currentTime >= item.start && currentTime <= (item.end + 0.05)) {
+          el.className = "cursor-pointer px-2 py-0.5 rounded-lg text-xs font-bold active-word-highlight transition-all";
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          el.className = "cursor-pointer px-2 py-0.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/80 hover:bg-violet-600/30 transition-all";
+        }
+      });
+    }
+
+    function downloadAiSubtitle(format) {
+      if (!rawGeneratedSrt) {
+        showToast("No generated subtitles to download.");
+        return;
+      }
+      const isVtt = format === 'vtt';
+      const content = isVtt ? rawGeneratedVtt : rawGeneratedSrt;
+      const filename = `word_by_word_captions.${isVtt ? 'vtt' : 'srt'}`;
+      const blob = new Blob([content], { type: `${isVtt ? 'text/vtt' : 'text/plain'};charset=utf-8` });
+      saveBlobFile(blob, filename);
+    }
+
+    function copyAiSrt() {
+      if (!rawGeneratedSrt) return;
+      navigator.clipboard.writeText(rawGeneratedSrt).then(() => {
+        showToast("Raw SRT copied to clipboard!");
+      });
+    }
+
+    function loadSampleWordSrt() {
+      const sampleWords = [
+        { word: "Welcome", start: 0.100, end: 0.500 },
+        { word: "to", start: 0.510, end: 0.700 },
+        { word: "Creator", start: 0.710, end: 1.150 },
+        { word: "Toolkit", start: 1.160, end: 1.650 },
+        { word: "Pro!", start: 1.660, end: 2.100 },
+        { word: "আমরা", start: 2.300, end: 2.700 },
+        { word: "প্রতিটি", start: 2.710, end: 3.150 },
+        { word: "শব্দকে", start: 3.160, end: 3.650 },
+        { word: "মিলিসেকেন্ড", start: 3.660, end: 4.300 },
+        { word: "নিখুঁত", start: 4.310, end: 4.800 },
+        { word: "টাইমিংয়ে", start: 4.810, end: 5.350 },
+        { word: "সিঙ্ক", start: 5.360, end: 5.750 },
+        { word: "করি।", start: 5.760, end: 6.200 },
+        { word: "Perfect", start: 6.400, end: 6.850 },
+        { word: "word-by-word", start: 6.860, end: 7.500 },
+        { word: "SRT", start: 7.510, end: 7.900 },
+        { word: "ready", start: 7.910, end: 8.300 },
+        { word: "for", start: 8.310, end: 8.550 },
+        { word: "CapCut!", start: 8.560, end: 9.100 }
+      ];
+
+      generatedWordsArray = sampleWords;
+      renderKaraokeWords(sampleWords);
+      rebuildSubtitlesFromWords(sampleWords, currentCaptionStyle);
+
+      document.getElementById('ai-result-panel').classList.remove('hidden');
+      document.getElementById('ai-progress-card').classList.add('hidden');
+      showToast("Demo word-by-word subtitles loaded!");
+    }
+
+    // ==============================================================
+    // FEATURE 3: SUBTITLE CONVERTER (SRT ↔ VTT ↔ TXT)
+    // ==============================================================
+    let currentSubMode = 'vtt';
+    let currentScriptFmt = 'lines';
+
+    const subInputText = document.getElementById('sub-input-text');
+    const subOutputText = document.getElementById('sub-output-text');
+    const detectedFormatBadge = document.getElementById('detected-format-badge');
+    const targetFormatBadge = document.getElementById('target-format-badge');
+    const txtOptionsBar = document.getElementById('txt-options-bar');
+    const subFileInput = document.getElementById('sub-file-input');
+
+    subFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        subInputText.value = event.target.result;
+        handleSubtitleInputChanged();
+        showToast(`Loaded ${file.name}`);
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    function setSubtitleMode(mode) {
+      currentSubMode = mode;
+      ['vtt', 'srt', 'txt'].forEach(m => {
+        const btn = document.getElementById(`sub-mode-${m}`);
+        if (m === mode) {
+          btn.classList.add('active', 'bg-violet-600', 'text-white');
+          btn.classList.remove('text-zinc-400');
+        } else {
+          btn.classList.remove('active', 'bg-violet-600', 'text-white');
+          btn.classList.add('text-zinc-400');
+        }
+      });
+
+      if (mode === 'txt') {
+        txtOptionsBar.classList.remove('hidden');
+        targetFormatBadge.textContent = 'Clean Script (.txt)';
+      } else if (mode === 'vtt') {
+        txtOptionsBar.classList.add('hidden');
+        targetFormatBadge.textContent = 'WebVTT (.vtt)';
+      } else {
+        txtOptionsBar.classList.add('hidden');
+        targetFormatBadge.textContent = 'SubRip (.srt)';
+      }
+      handleSubtitleInputChanged();
+    }
+
+    function setScriptFormat(fmt) {
+      currentScriptFmt = fmt;
+      const linesBtn = document.getElementById('txt-opt-lines');
+      const paraBtn = document.getElementById('txt-opt-para');
+      if (fmt === 'lines') {
+        linesBtn.classList.add('bg-zinc-700', 'text-white');
+        linesBtn.classList.remove('text-zinc-400');
+        paraBtn.classList.remove('bg-zinc-700', 'text-white');
+        paraBtn.classList.add('text-zinc-400');
+      } else {
+        paraBtn.classList.add('bg-zinc-700', 'text-white');
+        paraBtn.classList.remove('text-zinc-400');
+        linesBtn.classList.remove('bg-zinc-700', 'text-white');
+        linesBtn.classList.add('text-zinc-400');
+      }
+      handleSubtitleInputChanged();
+    }
+
+    function clearSubtitleInput() {
+      subInputText.value = '';
+      subOutputText.value = '';
+      detectedFormatBadge.textContent = 'Auto-Detect';
+      document.getElementById('input-stats').textContent = '0 characters • 0 lines';
+      document.getElementById('output-stats').textContent = '0 cues • 0 words';
+      document.getElementById('voiceover-time').textContent = 'Est. Voiceover Time: 0s';
+    }
+
+    function detectSubtitleFormat(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return 'empty';
+      if (/^WEBVTT/i.test(trimmed)) return 'vtt';
+      if (/\d+\r?\n\d{2}:\d{2}:\d{2},\d{3}\s*-->/i.test(trimmed) || /\d{2}:\d{2}:\d{2},\d{3}\s*-->/i.test(trimmed)) return 'srt';
+      if (/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->/i.test(trimmed) || /\d{2}:\d{2}\.\d{3}\s*-->/i.test(trimmed)) return 'vtt';
+      return 'txt';
+    }
+
+    function handleSubtitleInputChanged() {
+      const rawInput = subInputText.value;
+      const detected = detectSubtitleFormat(rawInput);
+      
+      if (detected === 'vtt') {
+        detectedFormatBadge.textContent = 'Detected: WebVTT';
+      } else if (detected === 'srt') {
+        detectedFormatBadge.textContent = 'Detected: SubRip (SRT)';
+      } else if (detected === 'txt') {
+        detectedFormatBadge.textContent = 'Detected: Plain Text';
+      } else {
+        detectedFormatBadge.textContent = 'Auto-Detect';
+      }
+
+      const charCount = rawInput.length;
+      const lineCount = rawInput ? rawInput.split(/\r?\n/).length : 0;
+      document.getElementById('input-stats').textContent = `${charCount.toLocaleString()} chars • ${lineCount.toLocaleString()} lines`;
+
+      if (!rawInput.trim()) {
+        subOutputText.value = '';
+        document.getElementById('output-stats').textContent = '0 cues • 0 words';
+        document.getElementById('voiceover-time').textContent = 'Est. Voiceover Time: 0s';
+        return;
+      }
+
+      let convertedText = '';
+      if (currentSubMode === 'vtt') {
+        convertedText = convertToVTT(rawInput, detected);
+      } else if (currentSubMode === 'srt') {
+        convertedText = convertToSRT(rawInput, detected);
+      } else {
+        convertedText = convertToCleanScript(rawInput, currentScriptFmt);
+      }
+
+      subOutputText.value = convertedText;
+      updateOutputStats(convertedText, currentSubMode);
+    }
+
+    function convertToVTT(input, detected) {
+      let text = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+      if (/^WEBVTT/i.test(text)) {
+        text = text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+        return text;
+      }
+      text = text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+      text = text.replace(/(\b\d{2}:\d{2}),(\d{3})/g, '00:$1.$2');
+      text = text.replace(/[ \t]+$/gm, '');
+      return 'WEBVTT\n\n' + text;
+    }
+
+    function convertToSRT(input, detected) {
+      let text = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+      text = text.replace(/^WEBVTT[^\n]*\n+/i, '');
+      text = text.replace(/NOTE(\s+[\s\S]*?)?(\n\n|$)/gi, '');
+      text = text.replace(/STYLE[\s\S]*?\n\n/gi, '');
+      text = text.replace(/REGION[\s\S]*?\n\n/gi, '');
+
+      const blocks = text.split(/\n\s*\n/);
+      const srtBlocks = [];
+      let cueIndex = 1;
+      const timestampRegex = /(?:(\d{2}:)?(\d{2}:\d{2})[.,](\d{3}))\s*-->\s*(?:(\d{2}:)?(\d{2}:\d{2})[.,](\d{3}))/;
+
+      for (let block of blocks) {
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length === 0) continue;
+
+        let timeLineIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+          if (timestampRegex.test(lines[i])) {
+            timeLineIndex = i;
+            break;
+          }
+        }
+        if (timeLineIndex === -1) continue;
+
+        const match = lines[timeLineIndex].match(timestampRegex);
+        if (!match) continue;
+
+        const startH = match[1] ? match[1].replace(':', '') : '00';
+        const startMS = match[2];
+        const startMillis = match[3];
+        const srtStart = `${startH.padStart(2, '0')}:${startMS},${startMillis}`;
+
+        const endH = match[4] ? match[4].replace(':', '') : '00';
+        const endMS = match[5];
+        const endMillis = match[6];
+        const srtEnd = `${endH.padStart(2, '0')}:${endMS},${endMillis}`;
+
+        const contentLines = lines.slice(timeLineIndex + 1);
+        if (contentLines.length === 0) continue;
+
+        const cleanContent = contentLines.map(line => {
+          return line.replace(/<\/?[a-z0-9_.-]+[^>]*>/gi, '').trim();
+        }).filter(Boolean).join('\n');
+
+        srtBlocks.push(`${cueIndex++}\n${srtStart} --> ${srtEnd}\n${cleanContent}`);
+      }
+      return srtBlocks.join('\n\n');
+    }
+
+    function convertToCleanScript(input, layout) {
+      let text = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      text = text.replace(/^WEBVTT[^\n]*\n+/i, '');
+      text = text.replace(/NOTE(\s+[\s\S]*?)?(\n\n|$)/gi, '');
+      text = text.replace(/STYLE[\s\S]*?\n\n/gi, '');
+      text = text.replace(/(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}\s*-->\s*(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}[^\n]*/g, '');
+      text = text.replace(/^\s*\d+\s*$/gm, '');
+      text = text.replace(/<[^>]+>/g, '');
+
+      const cleanLines = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      if (layout === 'para') {
+        const paragraph = cleanLines.join(' ')
+          .replace(/\s+/g, ' ')
+          .replace(/([.!?])\s+/g, '$1\n\n');
+        return paragraph.trim();
+      } else {
+        return cleanLines.join('\n');
+      }
+    }
+
+    function updateOutputStats(text, mode) {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        document.getElementById('output-stats').textContent = '0 cues • 0 words';
+        document.getElementById('voiceover-time').textContent = 'Est. Voiceover Time: 0s';
+        return;
+      }
+
+      let cues = 0;
+      if (mode === 'srt') {
+        const matches = text.match(/^\d+$/gm);
+        cues = matches ? matches.length : 0;
+      } else if (mode === 'vtt') {
+        const matches = text.match(/-->/g);
+        cues = matches ? matches.length : 0;
+      } else {
+        const lines = text.split(/\n+/).filter(Boolean);
+        cues = lines.length;
+      }
+
+      const words = trimmed.match(/[\p{L}\p{N}]+/gu);
+      const wordCount = words ? words.length : 0;
+      const totalSec = Math.round((wordCount / 150) * 60);
+      const voTimeStr = totalSec > 60 ? `${Math.floor(totalSec / 60)}m ${totalSec % 60}s` : `${totalSec}s`;
+
+      const unit = mode === 'txt' ? 'lines' : 'cues';
+      document.getElementById('output-stats').textContent = `${cues} ${unit} • ${wordCount.toLocaleString()} words`;
+      document.getElementById('voiceover-time').textContent = `Est. Voiceover Time: ~${voTimeStr}`;
+    }
+
+    function copySubtitleOutput() {
+      const text = subOutputText.value;
+      if (!text) {
+        showToast("Nothing to copy!");
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+        const copyText = document.getElementById('copy-btn-text');
+        copyText.textContent = "Copied!";
+        setTimeout(() => copyText.textContent = "Copy", 2000);
+      }).catch(() => {
+        subOutputText.select();
+        document.execCommand('copy');
+        showToast("Copied to clipboard!");
+      });
+    }
+
+    function downloadSubtitleFile() {
+      const text = subOutputText.value;
+      if (!text) {
+        showToast("Please enter subtitles to convert first.");
+        return;
+      }
+
+      let filename = 'subtitles';
+      let mimeType = 'text/plain;charset=utf-8';
+
+      if (currentSubMode === 'vtt') {
+        filename = 'subtitles.vtt';
+        mimeType = 'text/vtt;charset=utf-8';
+      } else if (currentSubMode === 'srt') {
+        filename = 'subtitles.srt';
+        mimeType = 'text/plain;charset=utf-8';
+      } else {
+        filename = 'clean_voiceover_script.txt';
+        mimeType = 'text/plain;charset=utf-8';
+      }
+
+      const blob = new Blob([text], { type: mimeType });
+      saveBlobFile(blob, filename);
+    }
+
+    function loadSampleSubtitles() {
+      const demo = `1
+00:00:00,800 --> 00:00:03,600
+Hey everyone! Welcome back to the Creator Toolkit tutorial.
+
+2
+00:00:04,100 --> 00:00:07,450
+Today we are demonstrating 100% client-side audio extraction.
+
+3
+00:00:08,000 --> 00:00:11,300
+আমাদের টুল দিয়ে যেকোনো ভিডিও থেকে সরাসরি অডিও আলাদা করা যায়।
+
+4
+00:00:11,900 --> 00:00:15,200
+বাংলা এবং ইংরেজি সাবটাইটেল কনভার্ট করা এখন অনেক সহজ।
+
+5
+00:00:15,800 --> 00:00:19,500
+Export studio-quality WAV or high-bitrate MP3 in seconds!`;
+
+      subInputText.value = demo;
+      handleSubtitleInputChanged();
+      showToast("Sample subtitles loaded!");
+    }
+  </script>
+</body>
+</html>
