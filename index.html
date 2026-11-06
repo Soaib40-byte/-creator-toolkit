@@ -1199,12 +1199,20 @@ Welcome to Creator Toolkit!
           throw new Error("Web Audio API is not supported in this browser environment.");
         }
         const audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
 
         let audioBuffer;
         try {
-          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          const bufferToDecode = arrayBuffer.slice(0);
+          audioBuffer = await new Promise((resolve, reject) => {
+            audioCtx.decodeAudioData(bufferToDecode, resolve, (err) => {
+              reject(err || new Error("Failed to decode audio track."));
+            });
+          });
         } catch (decodeErr) {
-          throw new Error("Failed to decode audio track. The video might not contain an audio track, or its audio format is unsupported.");
+          throw new Error("Failed to decode audio track. Please ensure the video contains an audio stream.");
         }
 
         if (!audioBuffer || audioBuffer.numberOfChannels === 0 || audioBuffer.length === 0) {
@@ -1386,11 +1394,11 @@ Welcome to Creator Toolkit!
     // ==============================================================
     // FEATURE 2: AI WORD-BY-WORD SRT & LINK IMPORTER
     // ==============================================================
-    let aiSourceMode = 'file';
+    let aiSourceMode = 'file'; // 'file' | 'link'
     let currentAiMediaFile = null;
     let currentAiMediaUrl = null;
-    let currentCaptionStyle = 'word';
-    let generatedWordsArray = [];
+    let currentCaptionStyle = 'word'; // 'word' | 'phrase' | 'sentence'
+    let generatedWordsArray = []; // Array of { word, start, end }
     let rawGeneratedSrt = '';
     let rawGeneratedVtt = '';
 
@@ -1469,6 +1477,7 @@ Welcome to Creator Toolkit!
       aiAudioPlayer.src = '';
     }
 
+    // Handle Link Detection (TikTok, YouTube, Facebook, Direct)
     function handleLinkInput(url) {
       url = url.trim();
       if (!url) {
@@ -1506,6 +1515,7 @@ Welcome to Creator Toolkit!
       refreshIcons();
 
       try {
+        // Direct media stream
         if (/\.(mp4|mp3|wav|webm|m4a)(\?.*)?$/i.test(url)) {
           currentAiMediaUrl = url;
           setupActiveAiPlayer(url, url.includes('.mp4') || url.includes('.webm'));
@@ -1514,6 +1524,7 @@ Welcome to Creator Toolkit!
           return;
         }
 
+        // For TikTok, YouTube Shorts, Facebook, use Cobalt public API
         linkStatusText.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-violet-400"></i> Extracting stream from ${detectedLinkPlatform.textContent}...`;
         refreshIcons();
 
@@ -1592,11 +1603,13 @@ Welcome to Creator Toolkit!
       }
     }
 
+    // Helper: Convert seconds to SRT timestamp 00:00:00,000
     function secondsToSrtTimestamp(sec) {
-      const hrs = Math.floor(sec / 3600);
-      const mins = Math.floor((sec % 3600) / 60);
-      const secs = Math.floor(sec % 60);
-      const millis = Math.floor((sec % 1) * 1000);
+      const totalMs = Math.max(0, Math.round(Number(sec) * 1000));
+      const hrs = Math.floor(totalMs / 3600000);
+      const mins = Math.floor((totalMs % 3600000) / 60000);
+      const secs = Math.floor((totalMs % 60000) / 1000);
+      const millis = totalMs % 1000;
       return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
     }
 
@@ -1604,6 +1617,7 @@ Welcome to Creator Toolkit!
       return secondsToSrtTimestamp(sec).replace(',', '.');
     }
 
+    // Main AI Word-by-Word Generation Function
     async function startWordSrtGeneration() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const progressCard = document.getElementById('ai-progress-card');
@@ -1626,17 +1640,20 @@ Welcome to Creator Toolkit!
 
       try {
         if (!apiKey) {
+          // If no API key configured, guide user with demo & open key modal
           progressBar.style.width = '40%';
           progressPct.textContent = '40%';
           progressDetail.textContent = 'No Gemini API Key set. Generating smart phoneme-timed demo...';
           await new Promise(r => setTimeout(r, 600));
 
+          // Load rich demo word-level SRT
           loadSampleWordSrt();
           progressCard.classList.add('hidden');
-          showToast("Generated demo word timestamps! To transcribe real audio, click 'AI Settings' to add a free Gemini key.");
+          showToast("Generated demo word timestamps! To use your own files, click 'AI Settings' to add a free Gemini key.");
           return;
         }
 
+        // With API Key: Extract and send audio slice to Gemini
         progressBar.style.width = '35%';
         progressPct.textContent = '35%';
         progressDetail.textContent = 'Extracting audio frequencies for transcription...';
@@ -1647,6 +1664,7 @@ Welcome to Creator Toolkit!
           audioBlob = await fetchRes.blob();
         }
 
+        // Convert blob to base64
         const reader = new FileReader();
         const base64Promise = new Promise((resolve) => {
           reader.onloadend = () => {
@@ -1696,6 +1714,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
         const data = await response.json();
         const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
+        // Clean JSON string
         const cleanJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
         const words = JSON.parse(cleanJson);
 
@@ -1723,6 +1742,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
       }
     }
 
+    // Rebuild SRT & VTT from Words Array based on style (word vs phrase vs sentence)
     function rebuildSubtitlesFromWords(words, style) {
       if (!words || words.length === 0) return;
 
@@ -1731,6 +1751,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
       let cueIndex = 1;
 
       if (style === 'word') {
+        // 1 Word per cue (Alex Hormozi viral captions)
         for (let i = 0; i < words.length; i++) {
           const w = words[i];
           const start = secondsToSrtTimestamp(w.start);
@@ -1740,6 +1761,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
           cueIndex++;
         }
       } else if (style === 'phrase') {
+        // 2 to 4 words per cue
         const chunkSize = 3;
         for (let i = 0; i < words.length; i += chunkSize) {
           const chunk = words.slice(i, i + chunkSize);
@@ -1752,6 +1774,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
           cueIndex++;
         }
       } else {
+        // Sentence mode (splits by punctuation or pause)
         let currentGroup = [];
         for (let i = 0; i < words.length; i++) {
           const w = words[i];
@@ -1787,9 +1810,9 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
         span.textContent = item.word;
         span.className = "cursor-pointer px-2 py-0.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/80 hover:bg-violet-600/30 transition-all";
         span.onclick = () => {
-          const player = !aiVideoPlayer.paused ? aiVideoPlayer : aiAudioPlayer;
+          const player = !aiVideoBox.classList.contains('hidden') ? aiVideoPlayer : aiAudioPlayer;
           player.currentTime = item.start;
-          player.play();
+          player.play().catch(() => {});
         };
         container.appendChild(span);
       });
@@ -1830,6 +1853,7 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
     }
 
     function loadSampleWordSrt() {
+      // Demo dataset featuring English and Bengali word-level timestamps
       const sampleWords = [
         { word: "Welcome", start: 0.100, end: 0.500 },
         { word: "to", start: 0.510, end: 0.700 },

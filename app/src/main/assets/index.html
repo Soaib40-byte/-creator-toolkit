@@ -1199,12 +1199,20 @@ Welcome to Creator Toolkit!
           throw new Error("Web Audio API is not supported in this browser environment.");
         }
         const audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
 
         let audioBuffer;
         try {
-          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          const bufferToDecode = arrayBuffer.slice(0);
+          audioBuffer = await new Promise((resolve, reject) => {
+            audioCtx.decodeAudioData(bufferToDecode, resolve, (err) => {
+              reject(err || new Error("Failed to decode audio track."));
+            });
+          });
         } catch (decodeErr) {
-          throw new Error("Failed to decode audio track. The video might not contain an audio track, or its audio format is unsupported.");
+          throw new Error("Failed to decode audio track. Please ensure the video contains an audio stream.");
         }
 
         if (!audioBuffer || audioBuffer.numberOfChannels === 0 || audioBuffer.length === 0) {
@@ -1597,10 +1605,11 @@ Welcome to Creator Toolkit!
 
     // Helper: Convert seconds to SRT timestamp 00:00:00,000
     function secondsToSrtTimestamp(sec) {
-      const hrs = Math.floor(sec / 3600);
-      const mins = Math.floor((sec % 3600) / 60);
-      const secs = Math.floor(sec % 60);
-      const millis = Math.floor((sec % 1) * 1000);
+      const totalMs = Math.max(0, Math.round(Number(sec) * 1000));
+      const hrs = Math.floor(totalMs / 3600000);
+      const mins = Math.floor((totalMs % 3600000) / 60000);
+      const secs = Math.floor((totalMs % 60000) / 1000);
+      const millis = totalMs % 1000;
       return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
     }
 
@@ -1801,9 +1810,9 @@ Language: Support Bengali (বাংলা), English, or whatever is spoken. Ens
         span.textContent = item.word;
         span.className = "cursor-pointer px-2 py-0.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/80 hover:bg-violet-600/30 transition-all";
         span.onclick = () => {
-          const player = !aiVideoPlayer.paused ? aiVideoPlayer : aiAudioPlayer;
+          const player = !aiVideoBox.classList.contains('hidden') ? aiVideoPlayer : aiAudioPlayer;
           player.currentTime = item.start;
-          player.play();
+          player.play().catch(() => {});
         };
         container.appendChild(span);
       });
