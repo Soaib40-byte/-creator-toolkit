@@ -951,7 +951,14 @@ Welcome to Creator Toolkit!
       closeApiKeyModal();
     }
     function checkSavedApiKey() {
-      const saved = localStorage.getItem('gemini_api_key');
+      let saved = localStorage.getItem('gemini_api_key');
+      if (!saved && window.AndroidBridge && typeof window.AndroidBridge.getInjectedApiKey === 'function') {
+        const injected = window.AndroidBridge.getInjectedApiKey();
+        if (injected && injected.length > 5) {
+          saved = injected;
+          localStorage.setItem('gemini_api_key', injected);
+        }
+      }
       const dot = document.getElementById('key-status-dot');
       if (saved) {
         dot.classList.remove('bg-zinc-600');

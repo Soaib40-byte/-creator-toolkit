@@ -94,6 +94,16 @@ class MainActivity : ComponentActivity() {
 class AndroidBridge(private val context: Context) {
 
   @JavascriptInterface
+  fun getInjectedApiKey(): String {
+    return try {
+      val key = BuildConfig::class.java.getField("GEMINI_API_KEY").get(null) as? String ?: ""
+      if (key == "MY_GEMINI_API_KEY" || key.isBlank()) "" else key
+    } catch (_: Exception) {
+      ""
+    }
+  }
+
+  @JavascriptInterface
   fun showToast(message: String) {
     (context as? Activity)?.runOnUiThread {
       Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
